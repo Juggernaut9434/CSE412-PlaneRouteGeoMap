@@ -1,16 +1,12 @@
 import psycopg2
+from config import config
 # psycopg2 Documentation: https://www.psycopg.org/docs/index.html
 
-# Configuration variables (can create a database.ini file for configuration)
-dbname = "db412"
-user = "postgres"
-password = "pass"
-port = 8888;
-
-def testDB():
+def connectDB():
+	conn = None
 	try:
 		# Connect to database
-		conn = psycopg2.connect("dbname={} user={} password={} port={}".format(dbname, user, password, port))
+		conn = psycopg2.connect(**config())
 
 		# Create cursor
 		cursor = conn.cursor()
@@ -22,14 +18,14 @@ def testDB():
 		print(db_version, end="\n\n")
 
 		# Execute COUNT of ROUTE
-		print("Executing 'SELECT COUNT(*) FROM \"Route\"")
-		cursor.execute('SELECT COUNT(*) FROM "Route"')
+		print("Executing 'SELECT COUNT(*) FROM \"route\"")
+		cursor.execute('SELECT COUNT(*) FROM "route"')
 		count = cursor.fetchone() # fetchone() gets first row from query result
 		print(count[0], end="\n\n")
 
 		# Get all ROUTE from PHX
 		print("Getting all ROUTES leaving from PHX")
-		cursor.execute('SELECT * FROM "Route" WHERE src_airport = \'PHX\'')
+		cursor.execute('SELECT * FROM "route" WHERE src_airport = \'PHX\'')
 		manualCountLol = 0 # Could use another Query with COUNT(*) instead of *
 
 		# Iterate through all output rows (NOTE: I can't tell a difference in "in cursor:" and "in cursor.fetchall():")
@@ -50,4 +46,4 @@ def testDB():
 
 
 if __name__ == '__main__':
-	testDB()
+	connectDB()
