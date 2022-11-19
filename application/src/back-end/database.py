@@ -25,17 +25,14 @@ class Database():
 			print(self.cursor.fetchone()[0], end='\n\n')
 			self.loadRoutes()
 
-			# Test getRoutesFromCity function
-			x = self.getRoutesFromCity("Baltimore")
-			for route in x:
-				print(route.airline + "\tFLIES ROUTE:\t" + route.src_iata + " -> " + route.dest_iata)
-
 		except (Exception, psycopg2.DatabaseError) as error:
 			print(error)
 			self.closeConnection()
 
 # TODO: SURROUND ALL METHODS WITH TRY AND CATCH ERRORS AND CLOSE CONNECTION LIKE ABOVE IN INIT
 # NOT SURE IF CLOSING CONNECTION REALLY MATTERS BUT WE TRYING TO BE GOOD PROGRAMMERS HERE RIGHT?
+
+# ALSO SHOULD ADD A FUNCTION TO GET AIRPORT NAME AND CITY NAME FROM AIRPORT IATA MAYBE?
 
 	def loadRoutes(self):
 		"""Loads ALL possible routes into self.routes"""
@@ -81,15 +78,15 @@ class Database():
 		NOTE: IATA is used instead of ID throughout this code once I realized all routes in the database had an IATA src and dest but some ids were NULL"""
 		foundRoute: Route = None
 		
+		# Could be reduced to one line using a Python generator but they make things kinda hard to understand code imo:
+		# foundRoute =  (r for r in self.routes if r.airline == airline and r.src_iata == src_iata and r.dest_iata == dest_iata).__next__()
 		for route in self.routes:
 			if route.airline == airline and route.src_iata == src_iata and route.dest_iata == dest_iata:
 				foundRoute = route
 		
 		if foundRoute is None:
-			self.warning("No route found from " + src_iata + " to " + dest_iata)
+			self.warning(f"No route found from {src_iata} to {dest_iata}, returning None")
 
-		# Could be reduced to one line using a Python generator but they make things kinda hard to understand code imo:
-		# return (r for r in self.routes if r.airline == airline and r.src_iata == src_iata and r.dest_iata == dest_iata).__next__()
 		return foundRoute
 
 	def getRoutesFromCity(self, city: str) -> list[Route]:
@@ -99,16 +96,30 @@ class Database():
 		# Adding airport. and route. to make the SQL execute faster
 		sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE airport.city ILIKE '{city}' AND route.src_airport=airport.iata"
 		self.cursor.execute(sql)
-		filteredRoutes: list[Route] = []
+		return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesFromCity({city})")
+			
+	def getRoutesFromIata(self, iata: str) -> list[Route]:
+		"""Find routes leaving from some airport"""
+		iata = iata.upper()
+		sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE src_airport='{iata}'"
+		self.logSQL(sql)
+		# Adding airport. and route. to make the SQL execute faster
+		sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE route.src_airport='{iata}'"
+		self.cursor.execute(sql)
+		return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesFromIata({iata})")
+					
+	def getRouteListFromCursor(self, warningMessage: str = None) -> list[Route]:
+		"""Creates and returns a list of Routes from all routes (airline, src_airport, dest_airport) currently in cursor"""
+		routesInCursor: list[Route] = []
 
 		for route in self.cursor.fetchall():
-			if route is None:
-				self.warning(f"No routes found in getRoutesFromCity({city})")
+			if route is None and warningMessage is not None:
+				self.warning(warningMessage)
 			else:
-				filteredRoutes.append(self.findRoute(route[0], route[1], route[2]))
-		
-		return filteredRoutes
-				
+				routesInCursor.append(self.findRoute(route[0], route[1], route[2]))
+
+		return routesInCursor
+
 	def closeConnection(self):
 		if self.conn is not None and not self.conn.closed:
 			self.conn.close()
@@ -123,3 +134,15 @@ class Database():
 
 if __name__ == '__main__':
 	db = Database()
+
+	# Test getRoutesFromCity and getRoutesFromIata functions
+	x = db.getRoutesFromCity("Baltimore")
+	for route in x:
+		print(route.airline + "\tFLIES ROUTE:\t" + route.src_iata + " -> " + route.dest_iata)
+
+	x = db.getRoutesFromIata("BOS")
+	for route in x:
+		print(route.airline + "\tFLIES ROUTE:\t" + route.src_iata + " -> " + route.dest_iata)
+
+	print("Database testing completed.")
+	db.closeConnection()
