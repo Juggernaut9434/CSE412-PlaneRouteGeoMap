@@ -16,7 +16,9 @@ Using this data [found here](https://openflights.org/data.html)
 
 ## SETUP
 
-Python installed v.3.10.2
+Python installed v.3.8.1
+
+**Note** Make sure pip is upgraded to at least v22
 
 Run `pip install -r requirements.txt`
 
