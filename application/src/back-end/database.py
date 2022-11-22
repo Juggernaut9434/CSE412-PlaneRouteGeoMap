@@ -75,21 +75,33 @@ class Database():
 
 	def getRoutesFromCity(self, city: str) -> list[Route]:
 		"""Find routes leaving from some city"""
-		sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE city ILIKE '{city}' AND src_airport=iata"
-		self.logSQL(sql)
-		# Adding airport. and route. to make the SQL execute faster
-		sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE airport.city ILIKE '{city}' AND route.src_airport=airport.iata"
-		self.cursor.execute(sql)
+		try:
+			sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE city ILIKE '{city}' AND src_airport=iata"
+			self.logSQL(sql)
+			# Adding airport. and route. to make the SQL execute faster
+			sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE airport.city ILIKE '{city}' AND route.src_airport=airport.iata"
+			self.cursor.execute(sql)
+		except (Exception, psycopg2.DatabaseError) as error:
+			print(error)
+			self.closeConnection()
+			return None
+
 		return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesFromCity({city})")
 			
 	def getRoutesFromIata(self, iata: str) -> list[Route]:
 		"""Find routes leaving from some airport"""
-		iata = iata.upper()
-		sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE src_airport='{iata}'"
-		self.logSQL(sql)
-		# Adding airport. and route. to make the SQL execute faster
-		sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE route.src_airport='{iata}'"
-		self.cursor.execute(sql)
+		try:
+			iata = iata.upper()
+			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE src_airport='{iata}'"
+			self.logSQL(sql)
+			# Adding airport. and route. to make the SQL execute faster
+			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE route.src_airport='{iata}'"
+			self.cursor.execute(sql)
+		except (Exception, psycopg2.DatabaseError) as error:
+			print(error)
+			self.closeConnection()
+			return None
+
 		return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesFromIata({iata})")
 					
 	def getRouteListFromCursor(self, warningMessage: str = None) -> list[Route]:
@@ -122,11 +134,11 @@ if __name__ == '__main__':
 	# Test getRoutesFromCity and getRoutesFromIata functions
 	x = db.getRoutesFromCity("Baltimore")
 	for route in x:
-		print(route.airline + "\tFLIES ROUTE:\t" + route.src_iata + " -> " + route.dest_iata)
+		print(str(route))
 
 	x = db.getRoutesFromIata("BOS")
 	for route in x:
-		print(route.airline + "\tFLIES ROUTE:\t" + route.src_iata + " -> " + route.dest_iata)
+		print(str(route))
 
 	print("Database testing completed.")
 	db.closeConnection()
