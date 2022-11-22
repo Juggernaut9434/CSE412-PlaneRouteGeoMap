@@ -36,46 +36,30 @@ class Database():
 
 	def loadRoutes(self):
 		"""Loads ALL possible routes into self.routes"""
-		sql = f"SELECT airline, src_airport, dest_airport FROM route"
+		sql = f"SELECT airline, src.iata, src.latitude, src.longitude, dest.iata, dest.latitude, dest.longitude \n\t\
+				FROM route r \n\t\
+				INNER JOIN airport as src ON src.iata = r.src_airport \n\t\
+				INNER JOIN airport as dest ON dest.iata = r.dest_airport"
 		self.logSQL(sql)
 		self.cursor.execute(sql)
 		ALLroutes = self.cursor.fetchall()
 		
 		for route in ALLroutes:
-			airline, srcIata, destIata = route
-			srcAirport = self.getAirportLatLongFromIata(srcIata)
-			destAirport = self.getAirportLatLongFromIata(destIata)
+			if route is None:
+				self.warning("No routes found in attempt to find all routes - Please check database connection")
+				continue # I'm pretty sure it should only be None is no routes at all are found but continue instead of break just in case there are routes
+			airline, srcIata, srcLat, srcLong, destIata, destLat, destLong = route
 
-
-			if srcAirport is not None and destAirport is not None:
-				srcLat, srcLong = srcAirport[0], srcAirport[1]
-				destLat, destLong = destAirport[0], destAirport[1]
-
-			if airline is not None and srcLat is not None and srcLong is not None and destLat is not None and destLong is not None:
+			if airline is not None and \
+				srcIata is not None and srcLat is not None and srcLong is not None and \
+				destIata is not None and destLat is not None and destLong is not None:
 				# If all of the values have been iniatialized, add route in self.routes
 				self.routes.append(Route(airline, srcIata, srcLat, srcLong, destIata, destLat, destLong))
-				
-	# Don't double ask for airports that are used multiple times (use a dictionary mapping IATA -> Tuple(lat, long))
-	loadedAirports: dict[str, tuple] = {}
-
-	def getAirportLatLongFromIata(self, iata: int):
-		if iata is None:
-			self.warning("Airport requested with no IATA, returning (None, None) for lat/long")
-			return (None, None)
-		elif self.loadedAirports.get(iata) is not None:
-			return self.loadedAirports.get(iata)
-		else:
-			sql = f"SELECT latitude, longitude FROM airport WHERE iata='{iata}'"
-			self.logSQL(sql)
-			# Adding airport. and route. to make the SQL execute faster
-			sql = f"SELECT latitude, longitude FROM airport WHERE airport.iata='{iata}'"
-			self.cursor.execute(sql)
-			self.loadedAirports[iata] = self.cursor.fetchone()
-			return self.loadedAirports[iata]
+			else:
+				self.warning("Failure in attempted route (missing values):", Route(airline, srcIata, srcLat, srcLong, destIata, destLat, destLong))
 			
 	def findRoute(self, airline: str, src_iata: int, dest_iata: int) -> Route:
-		"""Filters ALL routes by airline, source airport IATA and destination airport IATA to find a specific route in self.routes
-		NOTE: IATA is used instead of ID throughout this code once I realized all routes in the database had an IATA src and dest but some ids were NULL"""
+		"""Filters ALL routes by airline, source airport IATA and destination airport IATA to find a specific route in self.routes"""
 		foundRoute: Route = None
 		
 		# Could be reduced to one line using a Python generator but they make things kinda hard to understand code imo:
@@ -101,7 +85,7 @@ class Database():
 	def getRoutesFromIata(self, iata: str) -> list[Route]:
 		"""Find routes leaving from some airport"""
 		iata = iata.upper()
-		sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE src_airport='{iata}'"
+		sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE src_airport='{iata}'"
 		self.logSQL(sql)
 		# Adding airport. and route. to make the SQL execute faster
 		sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE route.src_airport='{iata}'"
