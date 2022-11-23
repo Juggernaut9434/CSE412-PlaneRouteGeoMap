@@ -26,8 +26,7 @@ class Database():
 			self.loadRoutes()
 
 		except (Exception, psycopg2.DatabaseError) as error:
-			print(error)
-			self.closeConnection()
+			self.closeConnection(error)
 
 # TODO: SURROUND ALL METHODS WITH TRY AND CATCH ERRORS AND CLOSE CONNECTION LIKE ABOVE IN INIT
 # NOT SURE IF CLOSING CONNECTION REALLY MATTERS BUT WE TRYING TO BE GOOD PROGRAMMERS HERE RIGHT?
@@ -36,13 +35,17 @@ class Database():
 
 	def loadRoutes(self):
 		"""Loads ALL possible routes into self.routes"""
-		sql = f"SELECT airline, src.iata, src.latitude, src.longitude, dest.iata, dest.latitude, dest.longitude \n\t\
-				FROM route r \n\t\
-				INNER JOIN airport as src ON src.iata = r.src_airport \n\t\
-				INNER JOIN airport as dest ON dest.iata = r.dest_airport"
-		self.logSQL(sql)
-		self.cursor.execute(sql)
-		ALLroutes = self.cursor.fetchall()
+		try:
+			sql = f"SELECT airline, src.iata, src.latitude, src.longitude, dest.iata, dest.latitude, dest.longitude \n\t\
+					FROM route r \n\t\
+					INNER JOIN airport as src ON src.iata = r.src_airport \n\t\
+					INNER JOIN airport as dest ON dest.iata = r.dest_airport"
+			self.logSQL(sql)
+			self.cursor.execute(sql)
+			ALLroutes = self.cursor.fetchall()
+		except (Exception, psycopg2.DatabaseError) as error:
+			self.closeConnection(error)
+			return
 		
 		for route in ALLroutes:
 			if route is None:
@@ -73,6 +76,8 @@ class Database():
 
 		return foundRoute
 
+# Routes From Location Functions
+
 	def getRoutesFromCity(self, city: str) -> list[Route]:
 		"""Find routes leaving from some city"""
 		try:
@@ -82,9 +87,7 @@ class Database():
 			sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE airport.city ILIKE '{city}' AND route.src_airport=airport.iata"
 			self.cursor.execute(sql)
 		except (Exception, psycopg2.DatabaseError) as error:
-			print(error)
-			self.closeConnection()
-			return None
+			self.closeConnection(error)
 
 		return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesFromCity({city})")
 			
@@ -98,12 +101,33 @@ class Database():
 			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE route.src_airport='{iata}'"
 			self.cursor.execute(sql)
 		except (Exception, psycopg2.DatabaseError) as error:
-			print(error)
-			self.closeConnection()
-			return None
+			self.closeConnection(error)
 
 		return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesFromIata({iata})")
 					
+# Routes To Location Functions
+
+	def getRoutesToCity(self, city: str) -> list[Route]:
+		"""Find routes leaving from some city"""
+		try:
+			sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE city ILIKE '{city}' AND dest_airport=iata"
+			self.logSQL(sql)
+			self.cursor.execute(sql)
+			return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesToCity({city})")
+		except (Exception, psycopg2.DatabaseError) as error:
+			self.closeConnection(error)
+			
+	def getRoutesToIata(self, iata: str) -> list[Route]:
+		"""Find routes leaving from some airport"""
+		try:
+			iata = iata.upper()
+			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE dest_airport='{iata}'"
+			self.logSQL(sql)
+			self.cursor.execute(sql)
+			return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesToIata({iata})")
+		except (Exception, psycopg2.DatabaseError) as error:
+			self.closeConnection(error)
+
 	def getRouteListFromCursor(self, warningMessage: str = None) -> list[Route]:
 		"""Creates and returns a list of Routes from all routes (airline, src_airport, dest_airport) currently in cursor"""
 		routesInCursor: list[Route] = []
@@ -116,7 +140,9 @@ class Database():
 
 		return routesInCursor
 
-	def closeConnection(self):
+	def closeConnection(self, message = None):
+		if message is not None:
+			print("\n" + message)
 		if self.conn is not None and not self.conn.closed:
 			self.conn.close()
 			print("Database connection closed.")
@@ -140,5 +166,4 @@ if __name__ == '__main__':
 	for route in x:
 		print(str(route))
 
-	print("Database testing completed.")
-	db.closeConnection()
+	db.closeConnection("Database testing completed.")
