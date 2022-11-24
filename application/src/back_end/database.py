@@ -11,7 +11,7 @@ class Database():
 	"""Contains list of ALL routes possible.
 	For filtering: Run SQL and find airport_id's that matter and check if they match for src_id and/or dest_id as needed"""
 
-	def __init__(self, printSQL=True) -> None:
+	def __init__(self, maxRoutes: int, printSQL=True) -> None:
 		self.printSQL = printSQL
 		"""Creates a connection to database with configuration specified in database.ini"""
 		try:
@@ -29,7 +29,7 @@ class Database():
 			print("Connected to database.\nPostgreSQL version:", end=' ')
 			self.cursor.execute("SELECT version()")
 			print(self.cursor.fetchone()[0], end='\n\n')
-			self.loadRoutes()
+			self.loadRoutes(maxRoutes)
 
 		except (Exception, psycopg2.DatabaseError) as error:
 			self.closeConnection(error)
@@ -39,14 +39,15 @@ class Database():
 
 # ALSO SHOULD ADD A FUNCTION TO GET AIRPORT NAME AND CITY NAME FROM AIRPORT IATA MAYBE?
 
-	def loadRoutes(self):
+	def loadRoutes(self, randomSampleSize):
 		"""Loads ALL possible routes into self.routes"""
 		try:
 			sql = f"SELECT airline, src.iata, src.latitude, src.longitude, dest.iata, dest.latitude, dest.longitude \n\t\
 					FROM route r \
 					INNER JOIN airport as src ON src.iata = r.src_airport \
 					INNER JOIN airport as dest ON dest.iata = r.dest_airport \
-					WHERE src.country = 'United States'	"
+					WHERE src.country = 'United States'	\
+					ORDER BY random() LIMIT {randomSampleSize}"
 			self.logSQL(sql)
 			self.cursor.execute(sql)
 			ALLroutes = self.cursor.fetchall()

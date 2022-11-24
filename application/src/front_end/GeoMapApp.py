@@ -44,8 +44,8 @@ my_label.pack(pady=20)
 
 
 map_widget = tkintermapview.TkinterMapView(my_label, width=700, height=500, corner_radius=0)
-map_widget.set_address("USA")
-map_widget.set_zoom(0)
+map_widget.set_address("New York")
+map_widget.set_zoom(1)
 map_widget.pack()
 
 my_filter = LabelFrame(root)
@@ -69,9 +69,6 @@ my_slider.grid(row=0, column=2, padx=10)
 
 
 # Add routes to map
-
-db = Database()
-
 oldPaths = []
 def mapRoutes(routesList: list[Route]):
     for path in oldPaths:
@@ -81,6 +78,7 @@ def mapRoutes(routesList: list[Route]):
     for i in range(len(routesList)):
         print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
         oldPaths.append(createPath(routesList[i]))
+
 
 
 
@@ -105,8 +103,9 @@ def mapRoutesAA():
 
 
 
-# Map all American Airlines' US routes 1 ms after mainloop is called
-root.after(1, mapRoutesAA)
+# Map all 1000 US routes 1 ms after mainloop is called
+db = Database(maxRoutes = 1000)
+root.after(1, mapRoutesALL)
 
 # Close database connection when root window is closed
 def onWindowClose():
