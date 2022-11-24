@@ -132,3 +132,6 @@ dmypy.json
 .vs
 *.vs
 .vs/
+
+# ignore database config
+database.ini
