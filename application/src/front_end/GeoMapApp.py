@@ -72,22 +72,47 @@ my_slider.grid(row=0, column=2, padx=10)
 
 db = Database()
 
-routesFromBaltimore = db.getRoutesFromCity("Baltimore")
-
 oldPaths = []
-
 def mapRoutes(routesList: list[Route]):
     for path in oldPaths:
         # Clear old routes from map
         path.delete()
 
     for i in range(len(routesList)):
-        print(f"Mapping route #{i+1} / {len(routesList)}")
+        print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
         oldPaths.append(createPath(routesList[i]))
 
-db.closeConnection("Database testing completed.")
 
-root.after(1, mapRoutes, db.routes)
 
+# Sample Filter Functions
+
+def mapRoutesALL():
+    mapRoutes(db.routes)
+
+# New York City routes (includes both LGA and JFK airports)
+def mapRoutesFromNYC():
+    mapRoutes(db.getRoutesFromCity("New York"))
+    
+def mapRoutesFromLGA():
+    mapRoutes(db.getRoutesFromIata("LGA"))
+
+def mapRoutesFromJFK():
+    mapRoutes(db.getRoutesFromIata("JFK"))
+
+def mapRoutesAA():
+    mapRoutes(db.getAirlineRoutes("AA"))
+
+
+
+
+# Map all American Airlines' US routes 1 ms after mainloop is called
+root.after(1, mapRoutesAA)
+
+# Close database connection when root window is closed
+def onWindowClose():
+    db.closeConnection()
+    root.destroy()
+
+root.protocol("WM_DELETE_WINDOW", onWindowClose)
 root.geometry("900x700")
 root.mainloop()

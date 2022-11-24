@@ -90,8 +90,6 @@ class Database():
 		try:
 			sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE city ILIKE '{city}' AND src_airport=iata"
 			self.logSQL(sql)
-			# Adding airport. and route. to make the SQL execute faster
-			sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE airport.city ILIKE '{city}' AND route.src_airport=airport.iata"
 			self.cursor.execute(sql)
 		except (Exception, psycopg2.DatabaseError) as error:
 			self.closeConnection(error)
@@ -101,16 +99,13 @@ class Database():
 	def getRoutesFromIata(self, iata: str) -> list[Route]:
 		"""Find routes leaving from some airport"""
 		try:
-			iata = iata.upper()
-			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE src_airport='{iata}'"
+			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE src_airport='{iata.upper()}'"
 			self.logSQL(sql)
-			# Adding airport. and route. to make the SQL execute faster
-			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE route.src_airport='{iata}'"
 			self.cursor.execute(sql)
 		except (Exception, psycopg2.DatabaseError) as error:
 			self.closeConnection(error)
 
-		return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesFromIata({iata})")
+		return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesFromIata({iata.upper()})")
 					
 # Routes To Location Functions
 
@@ -127,13 +122,23 @@ class Database():
 	def getRoutesToIata(self, iata: str) -> list[Route]:
 		"""Find routes leaving from some airport"""
 		try:
-			iata = iata.upper()
-			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE dest_airport='{iata}'"
+			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE dest_airport='{iata.upper()}'"
 			self.logSQL(sql)
 			self.cursor.execute(sql)
-			return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesToIata({iata})")
+			return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesToIata({iata.upper()})")
 		except (Exception, psycopg2.DatabaseError) as error:
 			self.closeConnection(error)
+
+	def getAirlineRoutes(self, airline: str):
+		"""Find routes leaving from some airport"""
+		try:
+			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE airline='{airline.upper()}'"
+			self.logSQL(sql)
+			self.cursor.execute(sql)
+			return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesToIata({airline.upper()})")
+		except (Exception, psycopg2.DatabaseError) as error:
+			self.closeConnection(error)
+
 
 	def getRouteListFromCursor(self, warningMessage: str = None) -> list[Route]:
 		"""Creates and returns a list of Routes from all routes (airline, src_airport, dest_airport) currently in cursor"""
@@ -143,7 +148,11 @@ class Database():
 			if route is None and warningMessage is not None:
 				self.warning(warningMessage)
 			else:
-				routesInCursor.append(self.findRoute(route[0], route[1], route[2]))
+				routeFound = self.findRoute(route[0], route[1], route[2])
+
+				# If route is not part of ALL routes do not add None to the list
+				if routeFound is not None:
+					routesInCursor.append(routeFound)
 
 		return routesInCursor
 
