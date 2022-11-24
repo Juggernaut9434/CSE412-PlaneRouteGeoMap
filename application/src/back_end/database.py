@@ -1,7 +1,7 @@
 from tkinter import EXCEPTION
 import psycopg2
-from config import config
-from route import Route
+from .config import config
+from .route import Route
 # psycopg2 Documentation: https://www.psycopg.org/docs/index.html
 
 class Database():
@@ -16,7 +16,13 @@ class Database():
 		"""Creates a connection to database with configuration specified in database.ini"""
 		try:
 			# Connect to database and create cursor
-			self.conn: psycopg2.connection = psycopg2.connect(**config())
+			dbConfig = config()
+
+			if len(dbConfig) < 5:
+				self.warning("Unable to load database configuration.")
+				return
+			
+			self.conn: psycopg2.connection = psycopg2.connect(**dbConfig)
 			self.cursor = self.conn.cursor()
 
 			# Test connection by printing PostgreSQL version
@@ -37,9 +43,10 @@ class Database():
 		"""Loads ALL possible routes into self.routes"""
 		try:
 			sql = f"SELECT airline, src.iata, src.latitude, src.longitude, dest.iata, dest.latitude, dest.longitude \n\t\
-					FROM route r \n\t\
-					INNER JOIN airport as src ON src.iata = r.src_airport \n\t\
-					INNER JOIN airport as dest ON dest.iata = r.dest_airport"
+					FROM route r \
+					INNER JOIN airport as src ON src.iata = r.src_airport \
+					INNER JOIN airport as dest ON dest.iata = r.dest_airport \
+					WHERE src.country = 'United States'	"
 			self.logSQL(sql)
 			self.cursor.execute(sql)
 			ALLroutes = self.cursor.fetchall()
@@ -142,7 +149,7 @@ class Database():
 
 	def closeConnection(self, message = None):
 		if message is not None:
-			print("\n" + message)
+			print("\n", message, sep='')
 		if self.conn is not None and not self.conn.closed:
 			self.conn.close()
 			print("Database connection closed.")

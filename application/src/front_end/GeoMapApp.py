@@ -1,20 +1,11 @@
 from tkinter import *
 import tkintermapview
 from tkinter import ttk
-from route import Route
-
-
-route1 = Route("2B", "ASF", 46.2832984924, 48.0063018799, "KZN", 55.606201171875, 49.278701782227)
-route2 = Route("2B", "GYD", 40.467498779296875, 50.04669952392578, "NBC", 55.564701080322266, 52.092498779296875)
-route3 = Route("2B", "ASF", 46.2832984924, 48.0063018799, "KZN", 55.606201171875, 49.278701782227)
-
-routess = [route1, route2]
-
+from ..back_end.route import Route
+from ..back_end.database import Database
 
 root = Tk()
 root.title('CSE412 Project')
-
-
 
 # lookup function, takes in the city name and sets the address to that location
 def lookup():
@@ -44,12 +35,17 @@ def setMarker(tempLat, tempLong):
 def setPath(first, second):
     return map_widget.set_path([first.position, second.position])
 
+def createPath(route: Route):
+    """Creates a path on the map_widget of the given Route"""
+    return map_widget.set_path([route.getSource(), route.getDestination()])
+
 my_label = LabelFrame(root)
 my_label.pack(pady=20)
 
 
 map_widget = tkintermapview.TkinterMapView(my_label, width=700, height=500, corner_radius=0)
-map_widget.set_zoom(50)
+map_widget.set_address("USA")
+map_widget.set_zoom(0)
 map_widget.pack()
 
 my_filter = LabelFrame(root)
@@ -72,16 +68,26 @@ my_slider = ttk.Scale(my_frame, from_=4, to=20, orient=HORIZONTAL, command=slide
 my_slider.grid(row=0, column=2, padx=10)
 
 
+# Add routes to map
 
+db = Database()
 
+routesFromBaltimore = db.getRoutesFromCity("Baltimore")
 
-mark1 = setMarker(getattr(routess[0], 'src_lat'), getattr(routess[0], 'src_long'))
-mark2 = setMarker(getattr(routess[0], 'dest_lat'), getattr(routess[0], 'dest_long'))
+oldPaths = []
 
-setPath(mark1, mark2)
+def mapRoutes(routesList: list[Route]):
+    for path in oldPaths:
+        # Clear old routes from map
+        path.delete()
 
-map_widget.set_address("Russia",marker=False)
+    for i in range(len(routesList)):
+        print(f"Mapping route #{i+1} / {len(routesList)}")
+        oldPaths.append(createPath(routesList[i]))
+
+db.closeConnection("Database testing completed.")
+
+root.after(1, mapRoutes, db.routes)
 
 root.geometry("900x700")
-
 root.mainloop()
