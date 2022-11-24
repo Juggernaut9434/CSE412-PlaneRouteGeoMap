@@ -20,15 +20,14 @@ class Database():
 
 			if len(dbConfig) < 5:
 				self.warning("Unable to load database configuration.")
-				return
 			
 			self.conn: psycopg2.connection = psycopg2.connect(**dbConfig)
 			self.cursor = self.conn.cursor()
 
 			# Test connection by printing PostgreSQL version
-			print("Connected to database.\nPostgreSQL version:", end=' ')
+			print("LOG: Connected to database.\nPostgreSQL version:", end=' ')
 			self.cursor.execute("SELECT version()")
-			print(self.cursor.fetchone()[0], end='\n\n')
+			print("LOG: " + self.cursor.fetchone()[0], end='\n\n')
 			self.loadRoutes(maxRoutes)
 
 		except (Exception, psycopg2.DatabaseError) as error:
@@ -42,7 +41,8 @@ class Database():
 	def loadRoutes(self, randomSampleSize):
 		"""Loads ALL possible routes into self.routes"""
 		try:
-			sql = f"SELECT airline, src.iata, src.latitude, src.longitude, dest.iata, dest.latitude, dest.longitude \n\t\
+			sql = f"SELECT airline, src.iata, src.latitude, src.longitude, \
+                    dest.iata, dest.latitude, dest.longitude \n\t\
 					FROM route r \
 					INNER JOIN airport as src ON src.iata = r.src_airport \
 					INNER JOIN airport as dest ON dest.iata = r.dest_airport \
@@ -67,10 +67,14 @@ class Database():
 				# If all of the values have been iniatialized, add route in self.routes
 				self.routes.append(Route(airline, srcIata, srcLat, srcLong, destIata, destLat, destLong))
 			else:
-				self.warning("Failure in attempted route (missing values):", Route(airline, srcIata, srcLat, srcLong, destIata, destLat, destLong))
+				self.warning("Failure in attempted route (missing values):", 
+                    Route(airline, srcIata, srcLat, srcLong, destIata, destLat, destLong))
 			
 	def findRoute(self, airline: str, src_iata: int, dest_iata: int) -> Route:
-		"""Filters ALL routes by airline, source airport IATA and destination airport IATA to find a specific route in self.routes"""
+		"""Filters ALL routes by airline, 
+            source airport IATA and destination airport IATA 
+            to find a specific route in self.routes"""
+
 		foundRoute: Route = None
 		
 		# Could be reduced to one line using a Python generator but they make things kinda hard to understand code imo:

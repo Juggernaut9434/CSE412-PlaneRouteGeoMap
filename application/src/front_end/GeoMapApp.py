@@ -1,8 +1,8 @@
 from tkinter import *
 import tkintermapview
 from tkinter import ttk
-from ..back_end.route import Route
-from ..back_end.database import Database
+from back_end.route import Route
+from back_end.database import Database
 
 root = Tk()
 root.title('CSE412 Project')
@@ -100,9 +100,6 @@ def mapRoutesFromJFK():
 def mapRoutesAA():
     mapRoutes(db.getAirlineRoutes("AA"))
 
-
-
-
 # Map all 1000 US routes 1 ms after mainloop is called
 db = Database(maxRoutes = 1000)
 root.after(1, mapRoutesALL)
@@ -115,3 +112,4 @@ def onWindowClose():
 root.protocol("WM_DELETE_WINDOW", onWindowClose)
 root.geometry("900x700")
 root.mainloop()
+
