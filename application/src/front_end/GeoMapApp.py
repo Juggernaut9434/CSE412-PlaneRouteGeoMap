@@ -35,7 +35,7 @@ def setMarker(tempLat, tempLong):
 def setPath(first, second):
     return map_widget.set_path([first.position, second.position])
 
-def createPath(route: Route):
+def createPath(route: Route) -> tkintermapview.map_widget.CanvasPath:
     """Creates a path on the map_widget of the given Route"""
     return map_widget.set_path([route.getSource(), route.getDestination()], width=2)
 
@@ -69,16 +69,20 @@ my_slider.grid(row=0, column=2, padx=10)
 
 
 # Add routes to map
-oldPaths = []
+oldPaths: list[tkintermapview.map_widget.CanvasPath] = []
+
 def mapRoutes(routesList: list[Route], debug=False):
     for path in oldPaths:
         # Clear old routes from map
         path.delete()
+    
+    oldPaths.clear()   
 
     for i in range(len(routesList)):
         if debug:
             print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
         oldPaths.append(createPath(routesList[i]))
+        print(oldPaths[i])
 
 
 
@@ -104,6 +108,7 @@ def mapRoutesAA():
 # Map all 1000 US routes 1 ms after mainloop is called
 db = Database(maxRoutes = 1000)
 root.after(1, mapRoutesALL)
+root.after(3000, mapRoutesFromJFK)
 
 # Close database connection when root window is closed
 def onWindowClose():
