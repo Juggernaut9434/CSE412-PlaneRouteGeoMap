@@ -1,7 +1,7 @@
 from tkinter import EXCEPTION
 import psycopg2
-from .config import config
-from .route import Route
+from src.back_end.config import config
+from src.back_end.route import Route
 # psycopg2 Documentation: https://www.psycopg.org/docs/index.html
 
 class Database():
@@ -17,12 +17,12 @@ class Database():
 		try:
 			# Connect to database and create cursor
 			dbConfig = config()
-
-			if len(dbConfig) < 5:
-				self.warning("Unable to load database configuration.")
-			
 			self.conn: psycopg2.connection = psycopg2.connect(**dbConfig)
 			self.cursor = self.conn.cursor()
+
+			if self.conn is None:
+				self.warning("Unable to load database configuration.")
+				raise ConnectionError("Please be sure you have created your database.ini file properly.")
 
 			# Test connection by printing PostgreSQL version
 			print("LOG: Connected to database.\nPostgreSQL version:", end=' ')
@@ -30,8 +30,11 @@ class Database():
 			print("LOG: " + self.cursor.fetchone()[0], end='\n\n')
 			# self.loadRoutes(maxRoutes)
 
-		except (Exception, psycopg2.DatabaseError) as error:
-			self.closeConnection(error)
+		except (Exception, psycopg2.DatabaseError, ConnectionError) as error:
+			if isinstance(error, ConnectionError):
+				exit(error.args[0])
+			else:
+				self.closeConnection(error)
 
 # NOT SURE IF CLOSING CONNECTION REALLY MATTERS BUT WE TRYING TO BE GOOD PROGRAMMERS HERE RIGHT?
 

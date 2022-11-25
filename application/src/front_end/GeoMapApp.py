@@ -1,8 +1,8 @@
 from tkinter import *
 import tkintermapview
 from tkinter import ttk
-from back_end.route import Route
-from back_end.database import Database
+from src.back_end.route import Route
+from src.back_end.database import Database
 
 root = Tk()
 root.title('CSE412 Project')
