@@ -37,7 +37,7 @@ def setPath(first, second):
 
 def createPath(route: Route):
     """Creates a path on the map_widget of the given Route"""
-    return map_widget.set_path([route.getSource(), route.getDestination()])
+    return map_widget.set_path([route.getSource(), route.getDestination()], width=2)
 
 my_label = LabelFrame(root)
 my_label.pack(pady=20)
@@ -70,13 +70,14 @@ my_slider.grid(row=0, column=2, padx=10)
 
 # Add routes to map
 oldPaths = []
-def mapRoutes(routesList: list[Route]):
+def mapRoutes(routesList: list[Route], debug=False):
     for path in oldPaths:
         # Clear old routes from map
         path.delete()
 
     for i in range(len(routesList)):
-        print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
+        if debug:
+            print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
         oldPaths.append(createPath(routesList[i]))
 
 
@@ -85,7 +86,7 @@ def mapRoutes(routesList: list[Route]):
 # Sample Filter Functions
 
 def mapRoutesALL():
-    mapRoutes(db.routes)
+    mapRoutes(db.getRoutesAll())
 
 # New York City routes (includes both LGA and JFK airports)
 def mapRoutesFromNYC():
