@@ -118,7 +118,6 @@ def mapRoutes(routesList: list[Route], debug=False):
 # Map all 1000 US routes 1 ms after mainloop is called
 db = Database(maxRoutes = 1000)
 root.after(1, mapRoutesALL)
-root.after(3000, mapRoutesFromJFK)
 
 # Close database connection when root window is closed
 def onWindowClose():
