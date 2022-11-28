@@ -9,12 +9,7 @@ root.title('CSE412 Project')
 
 # lookup function, takes in the city name and sets the address to that location
 def lookup():
-    map_widget.set_address(my_entry.get())
-    my_slider.config(value=9)
-
-#slide function sets the zoom on the map
-def slide(e):
-    map_widget.set_zoom(my_slider.get())
+    map_widget.set_address(city_entry.get())
 
 #filterShow function displays the filter box
 def filterShow():
@@ -56,10 +51,16 @@ def mapRoutesFromJFK():
 
 def mapRoutesAA():
     mapRoutes(db.getAirlineRoutes("AA"))
+    
+def mapRoutesCity():
+    mapRoutes(db.getRoutesFromCity(city_entry.get()))
+    
+def mapRoutesIata():
+    mapRoutes(db.getRoutesFromIata(iata_entry.get()))
 
 
 my_label = LabelFrame(root)
-my_label.pack(pady=20)
+my_label.pack(pady=10)
 
 
 map_widget = tkintermapview.TkinterMapView(my_label, width=700, height=500, corner_radius=0)
@@ -68,35 +69,40 @@ map_widget.set_zoom(1)
 map_widget.pack()
 
 my_filter = LabelFrame(root)
-my_filter.pack(pady=7)
+my_filter.pack(pady=5)
 
 filter_button1 = Button(my_filter, text="All Routes", font=("Helvetica", 18), command=mapRoutesALL)
-filter_button1.grid(row=0, column=0, padx=10)
+filter_button1.grid(row=0, column=0, padx=5)
 
 filter_button2 = Button(my_filter, text="From NY", font=("Helvetica", 18), command=mapRoutesFromNYC)
-filter_button2.grid(row=0, column=1, padx=10)
+filter_button2.grid(row=0, column=1, padx=5)
 
 filter_button3 = Button(my_filter, text="From LGA", font=("Helvetica", 18), command=mapRoutesFromLGA)
-filter_button3.grid(row=0, column=2, padx=10)
+filter_button3.grid(row=0, column=2, padx=5)
 
 filter_button4 = Button(my_filter, text="From JFK", font=("Helvetica", 18), command=mapRoutesFromJFK)
-filter_button4.grid(row=0, column=3, padx=10)
+filter_button4.grid(row=0, column=3, padx=5)
 
-filter_button5 = Button(my_filter, text="Routes AA", font=("Helvetica", 18), command=mapRoutesAA)
-filter_button5.grid(row=0, column=4, padx=10)
+filter_button5 = Button(my_filter, text="Operated by AA", font=("Helvetica", 18), command=mapRoutesAA)
+filter_button5.grid(row=0, column=4, padx=5)
 
 
-my_frame = LabelFrame(root)
-my_frame.pack(pady=10)
+filter_frame = LabelFrame(root)
+filter_frame.pack(pady=10)
 
-my_entry = Entry(my_frame, font=("Helvetica",28))
-my_entry.grid(row=0, column=0, pady=20, padx=10)
+city_entry = Entry(filter_frame, font=("Helvetica",28))
+city_entry.insert(0, "Boston")
+city_entry.grid(row=0, column=1, pady=5)
 
-my_button = Button(my_frame, text="Lookup", font=("Helvetica", 18), command=lookup)
-my_button.grid(row=0, column=1, padx=10)
+city_routes_button = Button(filter_frame, text="Filter Routes from City:", font=("Helvetica", 18), command=mapRoutesCity)
+city_routes_button.grid(row=0, column=0, pady=5)
 
-my_slider = ttk.Scale(my_frame, from_=4, to=20, orient=HORIZONTAL, command=slide, value=20, length=220)
-my_slider.grid(row=0, column=2, padx=10)
+iata_entry = Entry(filter_frame, font=("Helvetica",28))
+iata_entry.insert(0, "LHR")
+iata_entry.grid(row=1, column=1, pady=5)
+
+iata_routes_button = Button(filter_frame, text="Filter Routes from Airport:", font=("Helvetica", 18), command=mapRoutesIata)
+iata_routes_button.grid(row=1, column=0, pady=5)
 
 
 # Add routes to map
@@ -125,6 +131,6 @@ def onWindowClose():
     root.destroy()
 
 root.protocol("WM_DELETE_WINDOW", onWindowClose)
-root.geometry("900x700")
+root.geometry("900x720")
 root.mainloop()
 
