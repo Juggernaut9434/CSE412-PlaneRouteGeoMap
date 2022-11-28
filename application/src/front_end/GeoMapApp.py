@@ -1,8 +1,8 @@
 from tkinter import *
 import tkintermapview
 from tkinter import ttk
-from ..back_end.route import Route
-from ..back_end.database import Database
+from src.back_end.route import Route
+from src.back_end.database import Database
 
 root = Tk()
 root.title('CSE412 Project')
@@ -35,14 +35,14 @@ def setMarker(tempLat, tempLong):
 def setPath(first, second):
     return map_widget.set_path([first.position, second.position])
 
-def createPath(route: Route):
+def createPath(route: Route) -> tkintermapview.map_widget.CanvasPath:
     """Creates a path on the map_widget of the given Route"""
-    return map_widget.set_path([route.getSource(), route.getDestination()])
+    return map_widget.set_path([route.getSource(), route.getDestination()], width=2)
 
 # Sample Filter Functions
 
 def mapRoutesALL():
-    mapRoutes(db.routes)
+    mapRoutes(db.getRoutesAll())
 
 # New York City routes (includes both LGA and JFK airports)
 def mapRoutesFromNYC():
@@ -100,21 +100,25 @@ my_slider.grid(row=0, column=2, padx=10)
 
 
 # Add routes to map
-oldPaths = []
-def mapRoutes(routesList: list[Route]):
+oldPaths: list[tkintermapview.map_widget.CanvasPath] = []
+
+def mapRoutes(routesList: list[Route], debug=False):
     for path in oldPaths:
         # Clear old routes from map
         path.delete()
+    
+    oldPaths.clear()   
 
     for i in range(len(routesList)):
-        print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
+        if debug:
+            print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
+            print(oldPaths[i])
         oldPaths.append(createPath(routesList[i]))
-
-
 
 # Map all 1000 US routes 1 ms after mainloop is called
 db = Database(maxRoutes = 1000)
 root.after(1, mapRoutesALL)
+root.after(3000, mapRoutesFromJFK)
 
 # Close database connection when root window is closed
 def onWindowClose():
@@ -124,3 +128,4 @@ def onWindowClose():
 root.protocol("WM_DELETE_WINDOW", onWindowClose)
 root.geometry("900x700")
 root.mainloop()
+

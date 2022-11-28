@@ -1,7 +1,7 @@
 from tkinter import EXCEPTION
 import psycopg2
-from .config import config
-from .route import Route
+from src.back_end.config import config
+from src.back_end.route import Route
 # psycopg2 Documentation: https://www.psycopg.org/docs/index.html
 
 class Database():
@@ -17,24 +17,25 @@ class Database():
 		try:
 			# Connect to database and create cursor
 			dbConfig = config()
-
-			if len(dbConfig) < 5:
-				self.warning("Unable to load database configuration.")
-				return
-			
 			self.conn: psycopg2.connection = psycopg2.connect(**dbConfig)
 			self.cursor = self.conn.cursor()
 
+			if self.conn is None:
+				self.warning("Unable to load database configuration.")
+				raise ConnectionError("Please be sure you have created your database.ini file properly.")
+
 			# Test connection by printing PostgreSQL version
-			print("Connected to database.\nPostgreSQL version:", end=' ')
+			print("LOG: Connected to database.\nPostgreSQL version:", end=' ')
 			self.cursor.execute("SELECT version()")
-			print(self.cursor.fetchone()[0], end='\n\n')
-			self.loadRoutes(maxRoutes)
+			print("LOG: " + self.cursor.fetchone()[0], end='\n\n')
+			# self.loadRoutes(maxRoutes)
 
-		except (Exception, psycopg2.DatabaseError) as error:
-			self.closeConnection(error)
+		except (Exception, psycopg2.DatabaseError, ConnectionError) as error:
+			if isinstance(error, ConnectionError):
+				exit(error.args[0])
+			else:
+				self.closeConnection(error)
 
-# TODO: SURROUND ALL METHODS WITH TRY AND CATCH ERRORS AND CLOSE CONNECTION LIKE ABOVE IN INIT
 # NOT SURE IF CLOSING CONNECTION REALLY MATTERS BUT WE TRYING TO BE GOOD PROGRAMMERS HERE RIGHT?
 
 # ALSO SHOULD ADD A FUNCTION TO GET AIRPORT NAME AND CITY NAME FROM AIRPORT IATA MAYBE?
@@ -42,12 +43,9 @@ class Database():
 	def loadRoutes(self, randomSampleSize):
 		"""Loads ALL possible routes into self.routes"""
 		try:
-			sql = f"SELECT airline, src.iata, src.latitude, src.longitude, dest.iata, dest.latitude, dest.longitude \n\t\
-					FROM route r \
-					INNER JOIN airport as src ON src.iata = r.src_airport \
-					INNER JOIN airport as dest ON dest.iata = r.dest_airport \
-					WHERE src.country = 'United States'	\
-					ORDER BY random() LIMIT {randomSampleSize}"
+			sql = f"""SELECT * FROM routes_coor \n
+                    WHERE src_country = 'United States'	\n
+					ORDER BY random() LIMIT {randomSampleSize}"""
 			self.logSQL(sql)
 			self.cursor.execute(sql)
 			ALLroutes = self.cursor.fetchall()
@@ -59,7 +57,7 @@ class Database():
 			if route is None:
 				self.warning("No routes found in attempt to find all routes - Please check database connection")
 				continue # I'm pretty sure it should only be None is no routes at all are found but continue instead of break just in case there are routes
-			airline, srcIata, srcLat, srcLong, destIata, destLat, destLong = route
+			airline, srcIata, srcLat, srcLong, destIata, destLat, destLong, _, _, _, _ = route
 
 			if airline is not None and \
 				srcIata is not None and srcLat is not None and srcLong is not None and \
@@ -67,29 +65,19 @@ class Database():
 				# If all of the values have been iniatialized, add route in self.routes
 				self.routes.append(Route(airline, srcIata, srcLat, srcLong, destIata, destLat, destLong))
 			else:
-				self.warning("Failure in attempted route (missing values):", Route(airline, srcIata, srcLat, srcLong, destIata, destLat, destLong))
-			
-	def findRoute(self, airline: str, src_iata: int, dest_iata: int) -> Route:
-		"""Filters ALL routes by airline, source airport IATA and destination airport IATA to find a specific route in self.routes"""
-		foundRoute: Route = None
-		
-		# Could be reduced to one line using a Python generator but they make things kinda hard to understand code imo:
-		# foundRoute =  (r for r in self.routes if r.airline == airline and r.src_iata == src_iata and r.dest_iata == dest_iata).__next__()
-		for route in self.routes:
-			if route.airline == airline and route.src_iata == src_iata and route.dest_iata == dest_iata:
-				foundRoute = route
-		
-		if foundRoute is None:
-			self.warning(f"No route found from {src_iata} to {dest_iata}, returning None")
-
-		return foundRoute
+				self.warning("Failure in attempted route (missing values):", 
+                    Route(airline, srcIata, srcLat, srcLong, destIata, destLat, destLong))
 
 # Routes From Location Functions
+	def getRoutesAll(self) -> list[Route]:
+		self.loadRoutes(1000)
+		return self.routes
 
 	def getRoutesFromCity(self, city: str) -> list[Route]:
 		"""Find routes leaving from some city"""
 		try:
-			sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE city ILIKE '{city}' AND src_airport=iata"
+			sql = f"""SELECT * FROM routes_coor
+                    WHERE src_city ILIKE '{city}'"""
 			self.logSQL(sql)
 			self.cursor.execute(sql)
 		except (Exception, psycopg2.DatabaseError) as error:
@@ -100,7 +88,7 @@ class Database():
 	def getRoutesFromIata(self, iata: str) -> list[Route]:
 		"""Find routes leaving from some airport"""
 		try:
-			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE src_airport='{iata.upper()}'"
+			sql = f"SELECT * FROM routes_coor WHERE src_iata='{iata.upper()}'"
 			self.logSQL(sql)
 			self.cursor.execute(sql)
 		except (Exception, psycopg2.DatabaseError) as error:
@@ -113,7 +101,8 @@ class Database():
 	def getRoutesToCity(self, city: str) -> list[Route]:
 		"""Find routes leaving from some city"""
 		try:
-			sql = f"SELECT airline, src_airport, dest_airport FROM route, airport WHERE city ILIKE '{city}' AND dest_airport=iata"
+			sql = f"""SELECT * FROM routes_coor
+                    WHERE dest_city ILIKE '{city}'"""
 			self.logSQL(sql)
 			self.cursor.execute(sql)
 			return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesToCity({city})")
@@ -123,7 +112,7 @@ class Database():
 	def getRoutesToIata(self, iata: str) -> list[Route]:
 		"""Find routes leaving from some airport"""
 		try:
-			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE dest_airport='{iata.upper()}'"
+			sql = f"SELECT * FROM routes_coor WHERE dest_iata='{iata.upper()}'"
 			self.logSQL(sql)
 			self.cursor.execute(sql)
 			return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesToIata({iata.upper()})")
@@ -133,7 +122,7 @@ class Database():
 	def getAirlineRoutes(self, airline: str):
 		"""Find routes leaving from some airport"""
 		try:
-			sql = f"SELECT airline, src_airport, dest_airport FROM route WHERE airline='{airline.upper()}'"
+			sql = f"SELECT * FROM routes_coor WHERE airline='{airline.upper()}'"
 			self.logSQL(sql)
 			self.cursor.execute(sql)
 			return self.getRouteListFromCursor(warningMessage = f"No routes found in getRoutesToIata({airline.upper()})")
@@ -142,18 +131,24 @@ class Database():
 
 
 	def getRouteListFromCursor(self, warningMessage: str = None) -> list[Route]:
-		"""Creates and returns a list of Routes from all routes (airline, src_airport, dest_airport) currently in cursor"""
+		"""Creates and returns a list of Routes from all routes 
+            (airline, src_iata, dest_iata, src_lat, src_long, dest_lat dest_long) currently in cursor"""
 		routesInCursor: list[Route] = []
 
 		for route in self.cursor.fetchall():
 			if route is None and warningMessage is not None:
 				self.warning(warningMessage)
 			else:
-				routeFound = self.findRoute(route[0], route[1], route[2])
-
-				# If route is not part of ALL routes do not add None to the list
-				if routeFound is not None:
-					routesInCursor.append(routeFound)
+				routeFound = Route(
+                    airline=route[0],
+                    src_iata=route[1],
+                    src_lat=route[2],
+                    src_long=route[3],
+                    dest_iata=route[4],
+                    dest_lat=route[5],
+                    dest_long=route[6],
+                )
+				routesInCursor.append(routeFound)
 
 		return routesInCursor
 
