@@ -3,11 +3,14 @@ import os
 
 def config(filename='database.ini'):
     parser = ConfigParser()
-    path = os.path.join('application', 'src', 'back-end', filename)
+    path = os.path.join('application', 'src', 'back_end', filename)
     parser.read(path)
     db = {} # Create empty dictionary to store and return arguments
 
-    assert parser.has_section('postgresql'), f"Cannot find postgresql section in provided {filename}"
+    if not parser.has_section('postgresql'):
+        print(f"Cannot find postgresql section in provided {filename}")
+        return None
+    
     params = parser.items('postgresql')
 
     for param in params:

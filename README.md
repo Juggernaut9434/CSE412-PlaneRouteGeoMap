@@ -16,7 +16,9 @@ Using this data [found here](https://openflights.org/data.html)
 
 ## SETUP
 
-Python installed v.3.8.1
+for detailed setup refer to [The User Guide]()
+
+Python installed v.3.9
 
 **Note** Make sure pip is upgraded to at least v22
 

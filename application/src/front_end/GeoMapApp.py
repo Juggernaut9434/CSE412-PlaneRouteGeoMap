@@ -1,20 +1,11 @@
 from tkinter import *
 import tkintermapview
 from tkinter import ttk
-from route import Route
-
-
-route1 = Route("2B", "ASF", 46.2832984924, 48.0063018799, "KZN", 55.606201171875, 49.278701782227)
-route2 = Route("2B", "GYD", 40.467498779296875, 50.04669952392578, "NBC", 55.564701080322266, 52.092498779296875)
-route3 = Route("2B", "ASF", 46.2832984924, 48.0063018799, "KZN", 55.606201171875, 49.278701782227)
-
-routess = [route1, route2]
-
+from src.back_end.route import Route
+from src.back_end.database import Database
 
 root = Tk()
 root.title('CSE412 Project')
-
-
 
 # lookup function, takes in the city name and sets the address to that location
 def lookup():
@@ -44,12 +35,17 @@ def setMarker(tempLat, tempLong):
 def setPath(first, second):
     return map_widget.set_path([first.position, second.position])
 
+def createPath(route: Route) -> tkintermapview.map_widget.CanvasPath:
+    """Creates a path on the map_widget of the given Route"""
+    return map_widget.set_path([route.getSource(), route.getDestination()], width=2)
+
 my_label = LabelFrame(root)
 my_label.pack(pady=20)
 
 
 map_widget = tkintermapview.TkinterMapView(my_label, width=700, height=500, corner_radius=0)
-map_widget.set_zoom(50)
+map_widget.set_address("New York")
+map_widget.set_zoom(1)
 map_widget.pack()
 
 my_filter = LabelFrame(root)
@@ -72,16 +68,54 @@ my_slider = ttk.Scale(my_frame, from_=4, to=20, orient=HORIZONTAL, command=slide
 my_slider.grid(row=0, column=2, padx=10)
 
 
+# Add routes to map
+oldPaths: list[tkintermapview.map_widget.CanvasPath] = []
+
+def mapRoutes(routesList: list[Route], debug=False):
+    for path in oldPaths:
+        # Clear old routes from map
+        path.delete()
+    
+    oldPaths.clear()   
+
+    for i in range(len(routesList)):
+        if debug:
+            print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
+        oldPaths.append(createPath(routesList[i]))
+        print(oldPaths[i])
 
 
 
-mark1 = setMarker(getattr(routess[0], 'src_lat'), getattr(routess[0], 'src_long'))
-mark2 = setMarker(getattr(routess[0], 'dest_lat'), getattr(routess[0], 'dest_long'))
 
-setPath(mark1, mark2)
+# Sample Filter Functions
 
-map_widget.set_address("Russia",marker=False)
+def mapRoutesALL():
+    mapRoutes(db.getRoutesAll())
 
+# New York City routes (includes both LGA and JFK airports)
+def mapRoutesFromNYC():
+    mapRoutes(db.getRoutesFromCity("New York"))
+    
+def mapRoutesFromLGA():
+    mapRoutes(db.getRoutesFromIata("LGA"))
+
+def mapRoutesFromJFK():
+    mapRoutes(db.getRoutesFromIata("JFK"))
+
+def mapRoutesAA():
+    mapRoutes(db.getAirlineRoutes("AA"))
+
+# Map all 1000 US routes 1 ms after mainloop is called
+db = Database(maxRoutes = 1000)
+root.after(1, mapRoutesALL)
+root.after(3000, mapRoutesFromJFK)
+
+# Close database connection when root window is closed
+def onWindowClose():
+    db.closeConnection()
+    root.destroy()
+
+root.protocol("WM_DELETE_WINDOW", onWindowClose)
 root.geometry("900x700")
-
 root.mainloop()
+
