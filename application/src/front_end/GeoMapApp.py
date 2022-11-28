@@ -39,6 +39,25 @@ def createPath(route: Route):
     """Creates a path on the map_widget of the given Route"""
     return map_widget.set_path([route.getSource(), route.getDestination()])
 
+# Sample Filter Functions
+
+def mapRoutesALL():
+    mapRoutes(db.routes)
+
+# New York City routes (includes both LGA and JFK airports)
+def mapRoutesFromNYC():
+    mapRoutes(db.getRoutesFromCity("New York"))
+    
+def mapRoutesFromLGA():
+    mapRoutes(db.getRoutesFromIata("LGA"))
+
+def mapRoutesFromJFK():
+    mapRoutes(db.getRoutesFromIata("JFK"))
+
+def mapRoutesAA():
+    mapRoutes(db.getAirlineRoutes("AA"))
+
+
 my_label = LabelFrame(root)
 my_label.pack(pady=20)
 
@@ -51,8 +70,20 @@ map_widget.pack()
 my_filter = LabelFrame(root)
 my_filter.pack(pady=7)
 
-filter_button = Button(my_filter, text="Filter", font=("Helvetica", 18), command=filterShow)
-filter_button.grid(row=0, column=1, padx=10)
+filter_button1 = Button(my_filter, text="All Routes", font=("Helvetica", 18), command=mapRoutesALL)
+filter_button1.grid(row=0, column=0, padx=10)
+
+filter_button2 = Button(my_filter, text="From NY", font=("Helvetica", 18), command=mapRoutesFromNYC)
+filter_button2.grid(row=0, column=1, padx=10)
+
+filter_button3 = Button(my_filter, text="From LGA", font=("Helvetica", 18), command=mapRoutesFromLGA)
+filter_button3.grid(row=0, column=2, padx=10)
+
+filter_button4 = Button(my_filter, text="From JFK", font=("Helvetica", 18), command=mapRoutesFromJFK)
+filter_button4.grid(row=0, column=3, padx=10)
+
+filter_button5 = Button(my_filter, text="Routes AA", font=("Helvetica", 18), command=mapRoutesAA)
+filter_button5.grid(row=0, column=4, padx=10)
 
 
 my_frame = LabelFrame(root)
@@ -78,28 +109,6 @@ def mapRoutes(routesList: list[Route]):
     for i in range(len(routesList)):
         print(f"Mapping route #{i+1} / {len(routesList)}: {str(routesList[i])}")
         oldPaths.append(createPath(routesList[i]))
-
-
-
-
-# Sample Filter Functions
-
-def mapRoutesALL():
-    mapRoutes(db.routes)
-
-# New York City routes (includes both LGA and JFK airports)
-def mapRoutesFromNYC():
-    mapRoutes(db.getRoutesFromCity("New York"))
-    
-def mapRoutesFromLGA():
-    mapRoutes(db.getRoutesFromIata("LGA"))
-
-def mapRoutesFromJFK():
-    mapRoutes(db.getRoutesFromIata("JFK"))
-
-def mapRoutesAA():
-    mapRoutes(db.getAirlineRoutes("AA"))
-
 
 
 
