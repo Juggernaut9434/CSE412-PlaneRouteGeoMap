@@ -3,7 +3,7 @@ import os
 
 def config(filename='database.ini'):
     parser = ConfigParser()
-    path = os.path.join('application', 'src', 'back_end', filename)
+    path = os.path.join(filename)
     parser.read(path)
     db = {} # Create empty dictionary to store and return arguments
 
