@@ -29,7 +29,7 @@ psql -c "ALTER USER user_name  WITH PASSWORD 'postgres';"
 
 ### Setup Credentials for back_end
 
-1. Edit [database.ini](application/src/back_end/database.ini) to include user and password
+1. Edit [database.ini](database.ini) to include user and password
 
 ## Setup Python 3.9
 
